@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DISC · Mentoria</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --d:#C0472A;--d-bg:#FDF1EE;--i:#1A7A57;--i-bg:#EEF8F4;
+  --s:#1A5CA8;--s-bg:#EEF4FC;--c:#8A5A00;--c-bg:#FBF4E6;
+  --ink:#1A1916;--ink2:#5A5750;--ink3:#9A9690;
+  --surface:#FAFAF8;--card:#FFFFFF;
+  --border:rgba(26,25,22,.09);--border2:rgba(26,25,22,.16);
+  --radius:16px;--radius-sm:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--ink);min-height:100vh;font-size:16px;line-height:1.6}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:58px;background:rgba(250,250,248,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--ink)}
+.nav-logo span{color:var(--d)}
+.nav-links{display:flex;gap:6px;align-items:center}
+.nav-link{padding:6px 14px;border-radius:999px;font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;border:none;background:none;transition:all .15s;font-family:'DM Sans',sans-serif}
+.nav-link:hover{background:var(--border);color:var(--ink)}
+.nav-user{font-size:12px;color:var(--ink3);margin-right:4px}
+
+.page{display:none;padding-top:58px;min-height:100vh}
+.page.active{display:block}
+
+/* HOME */
+.intro-hero{max-width:720px;margin:0 auto;padding:5rem 2rem 2rem;text-align:center}
+.disc-badge{display:inline-flex;padding:6px 14px;border-radius:999px;background:var(--ink);color:#fff;font-size:12px;font-weight:500;letter-spacing:.06em;margin-bottom:2rem;text-transform:uppercase}
+.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(2.4rem,5vw,3.8rem);line-height:1.1;letter-spacing:-.02em;margin-bottom:1rem}
+.hero-title em{font-style:italic;color:var(--d)}
+.hero-sub{font-size:1rem;color:var(--ink2);max-width:460px;margin:0 auto 2rem;line-height:1.7}
+.register-wrap{max-width:420px;margin:0 auto;padding:0 2rem 2rem}
+.register-form{display:flex;flex-direction:column;gap:12px}
+.field-label{font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:4px;display:block}
+.field-input{width:100%;padding:12px 14px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);font-size:15px;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--ink);outline:none;transition:border-color .15s}
+.field-input:focus{border-color:var(--ink)}
+.btn-start-quiz{width:100%;padding:14px;border-radius:999px;background:var(--ink);color:#fff;font-size:15px;font-weight:500;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;margin-top:4px}
+.btn-start-quiz:hover{background:#3A3830}
+.btn-start-quiz:disabled{opacity:.4;cursor:not-allowed}
+.field-note{font-size:12px;color:var(--ink3);text-align:center}
+.disc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:720px;margin:2rem auto;padding:0 2rem}
+.disc-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
+.disc-card-letter{font-family:'DM Serif Display',serif;font-size:2.5rem;line-height:1;margin-bottom:.5rem}
+.disc-card-name{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2)}
+.disc-card-desc{font-size:12px;color:var(--ink3);margin-top:.35rem;line-height:1.5}
+.meta-row{display:flex;justify-content:center;gap:2rem;max-width:720px;margin:0 auto 4rem;padding:0 2rem;flex-wrap:wrap}
+.meta-item{text-align:center}
+.meta-num{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--ink)}
+.meta-label{font-size:12px;color:var(--ink3);margin-top:2px}
+
+/* QUIZ */
+.quiz-wrap{max-width:620px;margin:0 auto;padding:3rem 2rem 4rem}
+.progress-track{height:3px;background:var(--border2);border-radius:2px;margin-bottom:2.5rem;overflow:hidden}
+.progress-fill{height:3px;background:var(--ink);border-radius:2px;transition:width .4s cubic-bezier(.4,0,.2,1)}
+.quiz-top{display:flex;justify-content:space-between;margin-bottom:.5rem}
+.quiz-counter{font-size:13px;color:var(--ink3)}
+.q-num{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:.75rem}
+.q-text{font-family:'DM Serif Display',serif;font-size:1.55rem;line-height:1.25;letter-spacing:-.02em;margin-bottom:2rem;color:var(--ink)}
+.options{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border-radius:var(--radius-sm);border:1.5px solid var(--border2);background:var(--card);cursor:pointer;transition:all .15s;text-align:left;width:100%;font-family:'DM Sans',sans-serif}
+.opt:hover{border-color:var(--ink)}
+.opt.selected{border-color:var(--ink);background:var(--ink)}
+.opt.selected .opt-text{color:#fff}
+.opt.selected .opt-key{background:rgba(255,255,255,.2);color:#fff}
+.opt-key{width:26px;height:26px;border-radius:6px;flex-shrink:0;background:var(--surface);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;color:var(--ink3);transition:all .15s;margin-top:1px}
+.opt-text{font-size:14px;line-height:1.5;color:var(--ink);transition:color .15s}
+.quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:2rem}
+.btn-nav{padding:10px 22px;border-radius:999px;border:1.5px solid var(--border2);background:var(--card);color:var(--ink);font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-nav:hover:not(:disabled){border-color:var(--ink);background:var(--ink);color:#fff}
+.btn-nav:disabled{opacity:.35;cursor:not-allowed}
+.btn-nav.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-nav.primary:hover{background:#3A3830}
+
+/* OBRIGADO */
+.thanks-wrap{max-width:500px;margin:0 auto;padding:6rem 2rem;text-align:center}
+.thanks-icon{font-size:4rem;margin-bottom:1.5rem}
+.thanks-wrap h2{font-family:'DM Serif Display',serif;font-size:2.2rem;margin-bottom:.75rem}
+.thanks-wrap p{font-size:15px;color:var(--ink2);line-height:1.7;margin-bottom:2rem}
+.btn-refazer{display:inline-flex;padding:12px 28px;border-radius:999px;border:1.5px solid var(--border2);background:var(--card);color:var(--ink);font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.btn-refazer:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* LOGIN */
+.auth-wrap{max-width:400px;margin:0 auto;padding:5rem 1.5rem 3rem;text-align:center}
+.auth-wrap h2{font-family:'DM Serif Display',serif;font-size:2rem;margin-bottom:.5rem}
+.auth-wrap p{font-size:14px;color:var(--ink3);margin-bottom:2rem;line-height:1.6}
+.auth-form{display:flex;flex-direction:column;gap:10px;text-align:left}
+.auth-btn{width:100%;padding:12px;border-radius:999px;background:var(--ink);color:#fff;font-size:14px;font-weight:500;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;margin-top:4px}
+.auth-btn:hover{background:#3A3830}
+.auth-msg{font-size:13px;padding:10px 14px;border-radius:var(--radius-sm);margin-top:8px;display:none}
+.auth-msg.error{background:#FDF1EE;color:var(--d);display:block}
+.auth-msg.success{background:var(--i-bg);color:var(--i);display:block}
+
+/* DASHBOARD */
+.dash-wrap{max-width:960px;margin:0 auto;padding:3rem 2rem 5rem}
+.dash-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2.5rem;flex-wrap:wrap;gap:1rem}
+.dash-title{font-family:'DM Serif Display',serif;font-size:2.2rem;letter-spacing:-.03em;margin-bottom:.35rem}
+.dash-sub{font-size:14px;color:var(--ink3)}
+.dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
+.stat-letter{font-family:'DM Serif Display',serif;font-size:1.8rem;margin-bottom:.25rem}
+.stat-label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.stat-count{font-size:2rem;font-weight:300;color:var(--ink);margin-top:.25rem}
+.dist-chart{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem}
+.dist-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:1.25rem}
+.dist-bars{display:flex;gap:12px;align-items:flex-end;height:90px}
+.dist-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.dist-bar{width:100%;border-radius:6px 6px 0 0;min-height:4px}
+.dist-lbl{font-size:12px;font-weight:600}
+.dist-n{font-size:11px;color:var(--ink3)}
+.members-table{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1.5rem}
+.table-head{display:grid;grid-template-columns:1.4fr 1.4fr 80px 100px 90px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.table-row{display:grid;grid-template-columns:1.4fr 1.4fr 80px 100px 90px;padding:14px 20px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s}
+.table-row:last-child{border-bottom:none}
+.table-row:hover{background:var(--surface)}
+.member-name{font-size:14px;font-weight:500;color:var(--ink)}
+.member-email{font-size:12px;color:var(--ink3)}
+.profile-chip{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;font-weight:700;font-size:14px;font-family:'DM Serif Display',serif}
+.member-date{font-size:12px;color:var(--ink3)}
+.member-actions{display:flex;gap:5px;justify-content:flex-end}
+.btn-sm{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--card);color:var(--ink2);font-family:'DM Sans',sans-serif;transition:all .12s;white-space:nowrap}
+.btn-sm:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-sm.danger:hover{background:var(--d);border-color:var(--d);color:#fff}
+.dash-empty{padding:4rem;text-align:center;background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+.dash-empty p{color:var(--ink3);font-size:14px}
+.btn-action{padding:10px 20px;border-radius:999px;font-size:14px;font-weight:500;cursor:pointer;border:1.5px solid var(--border2);background:var(--card);color:var(--ink);font-family:'DM Sans',sans-serif;transition:all .15s}
+.btn-action:hover{border-color:var(--ink);background:var(--ink);color:#fff}
+.btn-action.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* RESULTADO COMPLETO */
+.result-wrap{max-width:760px;margin:0 auto;padding:3rem 2rem 5rem}
+.result-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;flex-wrap:wrap;gap:10px}
+.result-actions-top{display:flex;gap:8px;flex-wrap:wrap}
+
+/* seções do resultado */
+.r-section{margin:2rem 0}
+.r-section-title{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border)}
+.profile-hero{padding:1.5rem;border-radius:var(--radius);margin-bottom:.5rem}
+.profile-hero h2{font-family:'DM Serif Display',serif;font-size:2rem;letter-spacing:-.02em;margin-bottom:.35rem}
+.profile-hero p{font-size:15px;opacity:.85;line-height:1.6}
+.profile-combo-tag{display:inline-flex;padding:5px 14px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.75rem;border:1.5px solid currentColor}
+
+.bars-card{padding:1.25rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.5rem}
+.bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.bar-row:last-child{margin-bottom:0}
+.bar-letter{width:16px;font-weight:700;font-size:13px}
+.bar-name{width:95px;font-size:12px;color:var(--ink2)}
+.bar-track{flex:1;height:8px;background:var(--surface);border-radius:4px;overflow:hidden}
+.bar-fill{height:8px;border-radius:4px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.bar-pct{font-size:12px;font-weight:600;min-width:34px;text-align:right}
+
+.perfis-naturais{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem}
+.perfil-box{padding:1.25rem;background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+.perfil-box h4{font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:.5rem}
+.perfil-box p{font-size:13px;color:var(--ink2);line-height:1.65}
+.perfil-box strong{color:var(--ink);display:block;font-size:15px;margin-bottom:.35rem}
+
+.cards-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:.5rem}
+.cards-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:.5rem}
+.info-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
+.info-card h4{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:.85rem;display:flex;align-items:center;gap:6px}
+.info-card ul{list-style:none}
+.info-card ul li{font-size:13px;color:var(--ink2);padding:4px 0;display:flex;align-items:flex-start;gap:8px;line-height:1.45}
+.info-card ul li::before{content:"→";color:var(--ink3);flex-shrink:0;font-size:11px;margin-top:3px}
+
+.desc-box{padding:1.25rem 1.5rem;border-left:3px solid;border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:14px;color:var(--ink2);line-height:1.75;margin-bottom:1rem}
+.tip-box{padding:13px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;font-size:13px;color:var(--ink2);line-height:1.65}
+.careers-wrap{display:flex;flex-wrap:wrap;gap:8px;margin:.75rem 0}
+.career-tag{padding:5px 13px;border-radius:999px;font-size:12px;font-weight:500;border:1px solid}
+
+/* PRINT / PDF */
+@media print {
+  nav,.result-topbar,.result-actions-top,.no-print{display:none!important}
+  body{background:#fff;padding:0}
+  .page{display:block!important;padding-top:0}
+  #page-result{display:block!important}
+  .result-wrap{max-width:100%;padding:1.5cm 1.8cm}
+  .bars-card,.info-card,.perfil-box,.desc-box,.tip-box{break-inside:avoid}
+  .cards-3,.cards-2,.perfis-naturais{break-inside:avoid}
+  .r-section{break-inside:avoid}
+  @page{margin:0;size:A4}
+}
+
+/* LOADING / TOAST */
+.loading-overlay{display:none;position:fixed;inset:0;z-index:300;background:rgba(250,250,248,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;flex-direction:column;gap:12px}
+.loading-overlay.show{display:flex}
+.spinner{width:32px;height:32px;border:2.5px solid var(--border2);border-top-color:var(--ink);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:14px;color:var(--ink3)}
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(4px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;z-index:400}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.error{background:var(--d)}
+
+@media(max-width:640px){
+  .disc-grid{grid-template-columns:repeat(2,1fr)}
+  .cards-3,.cards-2,.perfis-naturais{grid-template-columns:1fr}
+  .dash-stats{grid-template-columns:repeat(2,1fr)}
+  .table-head,.table-row{grid-template-columns:1fr 80px 80px}
+  .table-head>*:nth-child(n+4),.table-row>*:nth-child(n+4){display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading"><div class="spinner"></div><span class="loading-text" id="loading-text">Carregando...</span></div>
+
+<nav>
+  <span class="nav-logo"><span>DISC</span> · Mentoria</span>
+  <div class="nav-links">
+    <span class="nav-user" id="nav-user-label"></span>
+    <button class="nav-link" id="nav-auth" onclick="showPage('login')">Admin</button>
+    <button class="nav-link" id="nav-dashboard" style="display:none" onclick="showPage('dashboard');loadDashboard()">Dashboard</button>
+  </div>
+</nav>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="intro-hero">
+    <span class="disc-badge">Avaliação Comportamental</span>
+    <h1 class="hero-title">Descubra seu perfil <em>DISC</em></h1>
+    <p class="hero-sub">Preencha seus dados para começar. São apenas 12 perguntas e leva cerca de 4 minutos.</p>
+  </div>
+  <div class="register-wrap">
+    <div class="register-form">
+      <div><label class="field-label">Nome completo *</label><input class="field-input" id="reg-name" type="text" placeholder="Ex: Maria Silva" oninput="checkForm()"></div>
+      <div><label class="field-label">E-mail *</label><input class="field-input" id="reg-email" type="email" placeholder="voce@email.com" oninput="checkForm()"></div>
+      <button class="btn-start-quiz" id="btn-iniciar" onclick="iniciarAvaliacao()" disabled>Começar avaliação →</button>
+      <p class="field-note">🔒 Seus dados são confidenciais e usados apenas para a mentoria.</p>
+    </div>
+  </div>
+  <div class="disc-grid">
+    <div class="disc-card" style="border-top:3px solid var(--d)"><div class="disc-card-letter" style="color:var(--d)">D</div><div class="disc-card-name">Dominância</div><div class="disc-card-desc">Orientado a resultados, direto e decisivo</div></div>
+    <div class="disc-card" style="border-top:3px solid var(--i)"><div class="disc-card-letter" style="color:var(--i)">I</div><div class="disc-card-name">Influência</div><div class="disc-card-desc">Comunicativo, entusiasta e inspirador</div></div>
+    <div class="disc-card" style="border-top:3px solid var(--s)"><div class="disc-card-letter" style="color:var(--s)">S</div><div class="disc-card-name">Estabilidade</div><div class="disc-card-desc">Empático, colaborativo e confiável</div></div>
+    <div class="disc-card" style="border-top:3px solid var(--c)"><div class="disc-card-letter" style="color:var(--c)">C</div><div class="disc-card-name">Conformidade</div><div class="disc-card-desc">Analítico, preciso e criterioso</div></div>
+  </div>
+  <div class="meta-row">
+    <div class="meta-item"><div class="meta-num">12</div><div class="meta-label">perguntas</div></div>
+    <div class="meta-item"><div class="meta-num">~4min</div><div class="meta-label">de duração</div></div>
+    <div class="meta-item"><div class="meta-num">100%</div><div class="meta-label">confidencial</div></div>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div class="page" id="page-quiz">
+  <div class="quiz-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+    <div class="quiz-top"><span class="quiz-counter" id="quiz-counter">1 / 12</span></div>
+    <div id="quiz-body"></div>
+    <div class="quiz-nav">
+      <button class="btn-nav" id="btn-back" onclick="quizBack()">← Voltar</button>
+      <button class="btn-nav primary" id="btn-next" onclick="quizNext()" disabled>Próxima →</button>
+    </div>
+  </div>
+</div>
+
+<!-- OBRIGADO -->
+<div class="page" id="page-thanks">
+  <div class="thanks-wrap">
+    <div class="thanks-icon">✅</div>
+    <h2>Avaliação concluída!</h2>
+    <p>Obrigado por responder, <strong id="thanks-name"></strong>!<br>Suas respostas foram registradas e serão analisadas em breve.</p>
+    <button class="btn-refazer" onclick="showPage('home');limparForm()">Fazer nova avaliação</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="page" id="page-login">
+  <div class="auth-wrap">
+    <div style="font-size:2.5rem;margin-bottom:1rem">🔐</div>
+    <h2>Acesso Restrito</h2>
+    <p>Área exclusiva para o mentor.</p>
+    <div class="auth-form">
+      <div><label class="field-label">E-mail</label><input class="field-input" type="email" id="login-email" placeholder="mentor@email.com"></div>
+      <div><label class="field-label">Senha</label><input class="field-input" type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="auth-btn" onclick="doLogin()" id="btn-login">Entrar</button>
+      <div class="auth-msg" id="login-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page" id="page-dashboard">
+  <div class="dash-wrap">
+    <div class="dash-header">
+      <div><h2 class="dash-title">Resultados da Mentoria</h2><p class="dash-sub" id="dash-sub">Perfis comportamentais dos participantes</p></div>
+      <button class="btn-action" onclick="loadDashboard()">↻ Atualizar</button>
+    </div>
+    <div class="dash-stats">
+      <div class="stat-card" style="border-top:3px solid var(--d)"><div class="stat-letter" style="color:var(--d)">D</div><div class="stat-label">Dominância</div><div class="stat-count" id="stat-d">—</div></div>
+      <div class="stat-card" style="border-top:3px solid var(--i)"><div class="stat-letter" style="color:var(--i)">I</div><div class="stat-label">Influência</div><div class="stat-count" id="stat-i">—</div></div>
+      <div class="stat-card" style="border-top:3px solid var(--s)"><div class="stat-letter" style="color:var(--s)">S</div><div class="stat-label">Estabilidade</div><div class="stat-count" id="stat-s">—</div></div>
+      <div class="stat-card" style="border-top:3px solid var(--c)"><div class="stat-letter" style="color:var(--c)">C</div><div class="stat-label">Conformidade</div><div class="stat-count" id="stat-c">—</div></div>
+    </div>
+    <div class="dist-chart"><div class="dist-title">Distribuição do grupo</div><div class="dist-bars" id="dist-bars"></div></div>
+    <div id="members-section"></div>
+  </div>
+</div>
+
+<!-- RESULTADO COMPLETO (só admin) -->
+<div class="page" id="page-result">
+  <div class="result-wrap" id="result-content"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://ikpjelcgvbevnuhskiie.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrcGplbGNndmJldm51aHNraWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDA0NTUsImV4cCI6MjA5NTcxNjQ1NX0.Q2s1WDasifQr01AJ6cfF02T594l0f80-WIUdNwR18IU';
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentAdmin = null;
+
+// ── PERGUNTAS ────────────────────────────────
+const QUESTIONS=[
+  {text:"Quando você tem um projeto importante para entregar, você tende a:",options:[{text:"Assumir o comando, definir metas claras e cobrar resultados da equipe",disc:"D"},{text:"Engajar todos com entusiasmo e criar um clima motivador ao redor do projeto",disc:"I"},{text:"Garantir que todos estejam confortáveis e trabalhar de forma colaborativa",disc:"S"},{text:"Criar um plano detalhado, analisar riscos e seguir os processos corretos",disc:"C"}]},
+  {text:"Em situações de conflito no trabalho, sua primeira reação é:",options:[{text:"Enfrentar o problema de frente e buscar uma solução rápida e direta",disc:"D"},{text:"Tentar convencer as pessoas e encontrar um ponto de equilíbrio com leveza",disc:"I"},{text:"Ouvir todos os lados e priorizar a harmonia do grupo",disc:"S"},{text:"Analisar os fatos objetivamente e propor uma solução racional",disc:"C"}]},
+  {text:"Como você prefere receber feedback sobre seu trabalho?",options:[{text:"Direto ao ponto: me diga o que precisa mudar e deixe eu resolver",disc:"D"},{text:"Com encorajamento e reconhecimento dos pontos positivos primeiro",disc:"I"},{text:"De forma gentil, com foco em como posso ajudar melhor o time",disc:"S"},{text:"Com dados, exemplos concretos e justificativas claras",disc:"C"}]},
+  {text:"O que mais te motiva no ambiente de trabalho?",options:[{text:"Desafios, autonomia e ver resultados concretos das minhas ações",disc:"D"},{text:"Reconhecimento, variedade de atividades e interação com pessoas",disc:"I"},{text:"Estabilidade, cooperação e a certeza de que estou ajudando o time",disc:"S"},{text:"Qualidade, precisão e a satisfação de fazer algo bem feito",disc:"C"}]},
+  {text:"Como você costuma tomar decisões importantes?",options:[{text:"Rapidamente, com base na intuição e no objetivo final que quero alcançar",disc:"D"},{text:"Levando em conta como a decisão impacta as pessoas e o relacionamento",disc:"I"},{text:"Com calma, ouvindo a opinião dos outros antes de decidir",disc:"S"},{text:"Pesquisando, coletando dados e analisando todas as alternativas",disc:"C"}]},
+  {text:"Como as pessoas costumam te descrever no trabalho?",options:[{text:"Determinado(a), decidido(a) e focado(a) em resultados",disc:"D"},{text:"Animado(a), criativo(a) e ótimo(a) para trabalhar em equipe",disc:"I"},{text:"Paciente, confiável e sempre disposto(a) a ajudar",disc:"S"},{text:"Cuidadoso(a), metódico(a) e muito atento(a) aos detalhes",disc:"C"}]},
+  {text:"Qual dessas situações te causa mais desconforto?",options:[{text:"Ter meu tempo desperdiçado ou ser microgerenciado(a)",disc:"D"},{text:"Trabalhar em isolamento, sem interação com outras pessoas",disc:"I"},{text:"Lidar com mudanças repentinas ou ambientes muito conflituosos",disc:"S"},{text:"Trabalhar sem padrões claros ou tendo que improvisar muito",disc:"C"}]},
+  {text:"Em reuniões de equipe, você geralmente:",options:[{text:"Vai direto ao ponto, domina a discussão e foca nas decisões",disc:"D"},{text:"Anima o grupo, faz piadas e conecta as pessoas com facilidade",disc:"I"},{text:"Ouve atentamente, apoia as ideias dos outros e ajuda a mediar",disc:"S"},{text:"Faz perguntas detalhadas e quer entender todos os aspectos antes de decidir",disc:"C"}]},
+  {text:"Qual é a sua relação com mudanças e novidades?",options:[{text:"Adoro! Mudança significa oportunidade de crescer e inovar",disc:"D"},{text:"Adoro! Novidades trazem energia e tornam o trabalho mais interessante",disc:"I"},{text:"Prefiro mudanças graduais, com tempo para me adaptar com segurança",disc:"S"},{text:"Aceito quando há um plano claro e os riscos foram bem avaliados",disc:"C"}]},
+  {text:"Como você lida com prazos e pressão?",options:[{text:"Fico mais focado(a) e eficiente — pressão me faz render mais",disc:"D"},{text:"Busco apoio da equipe e tento manter a leveza mesmo sob pressão",disc:"I"},{text:"Me esforço para não deixar ninguém na mão, mesmo que custe meu esforço extra",disc:"S"},{text:"Me organizo com antecedência justamente para evitar pressão de última hora",disc:"C"}]},
+  {text:"Quando você comete um erro, sua tendência é:",options:[{text:"Assumir rapidamente, corrigir e seguir em frente sem culpa",disc:"D"},{text:"Pedir desculpas, contar para o time e buscar ajuda para resolver",disc:"I"},{text:"Se preocupar com o impacto nos outros e fazer tudo para reparar",disc:"S"},{text:"Analisar o que deu errado em detalhe para garantir que não se repita",disc:"C"}]},
+  {text:"Qual dessas conquistas te daria mais satisfação?",options:[{text:"Bater uma meta desafiadora e ser reconhecido(a) pela liderança forte",disc:"D"},{text:"Inspirar e motivar uma equipe inteira a alcançar um objetivo juntos",disc:"I"},{text:"Criar um ambiente de trabalho onde todos se sentem seguros e valorizados",disc:"S"},{text:"Entregar um projeto impecável, sem erros e dentro dos mais altos padrões",disc:"C"}]},
+];
+
+// ── PERFIS COMPLETOS ──────────────────────────
+const PROFILES = {
+  D:{
+    name:"Dominância", color:"#C0472A", bg:"#FDF1EE",
+    combo_desc:"Perfil primário com alta orientação a resultados e ação direta.",
+    natural:"Líder nato que age com velocidade, confiança e foco em resultados. Em seu estado mais autêntico, é assertivo, decisivo e não hesita diante de desafios.",
+    adaptado:"Em ambientes que exigem colaboração e processos, pode moderar o ritmo e a assertividade, mas tende a sentir frustração quando percebe ineficiência ou falta de autonomia.",
+    caracteristicas:["Orientado a resultados e desafios","Toma decisões rápidas e diretas","Prefere autonomia e controle","Alta energia e senso de urgência","Comunicação direta e objetiva","Gosta de competição e superação"],
+    fortes:["Liderança assertiva e inspiradora","Foco e determinação","Capacidade de agir sob pressão","Resolução rápida de problemas","Visão de resultados de longo prazo","Iniciativa e proatividade"],
+    trabalhar:["Impaciência com processos e detalhes","Tendência a ignorar sentimentos alheios","Dificuldade em delegar e confiar","Pode parecer arrogante ou insensível","Resistência a receber feedback","Toma riscos excessivos sem análise"],
+    medos:["Perder o controle da situação","Ser visto como fraco ou vulnerável","Fracassar publicamente","Depender de outras pessoas","Ser microgerenciado ou controlado","Estagnação e falta de progresso"],
+    tendencias:["Assume a liderança naturalmente","Foca no fim, não nos meios","Age primeiro, analisa depois","Define metas ambiciosas","Confronta conflitos diretamente","Busca posições de autoridade"],
+    comunicacao:"Direta, objetiva e vai ao ponto. Prefere reuniões curtas, e-mails concisos e comunicação focada em resultados. Não gosta de rodeios ou excesso de detalhes. Responde melhor quando você vai direto ao que precisa, com clareza sobre prazos e impacto.",
+    mentoria:"Desafie-a com metas ousadas e dê autonomia. Evite microgerenciar. Trabalhe a escuta ativa e empatia como diferenciais de liderança. Use exemplos de líderes que combinam resultado com relacionamento.",
+  },
+  I:{
+    name:"Influência", color:"#1A7A57", bg:"#EEF8F4",
+    combo_desc:"Perfil primário com alta orientação a pessoas e comunicação.",
+    natural:"Comunicador entusiasta que inspira e conecta pessoas com facilidade. Em seu estado mais autêntico, é otimista, criativo e naturalmente carismático.",
+    adaptado:"Em ambientes mais formais ou estruturados, pode conter o entusiasmo e adaptar o discurso, mas perde energia quando privado de interação social e reconhecimento.",
+    caracteristicas:["Altamente comunicativo e persuasivo","Otimista e entusiasta","Foco nas relações e no clima emocional","Criativo e cheio de ideias","Busca reconhecimento e aprovação","Prefere variedade à rotina"],
+    fortes:["Habilidade de influenciar e motivar","Criação de relacionamentos sólidos","Facilidade para vender ideias","Adaptabilidade social","Pensamento criativo e inovador","Energia contagiante e positividade"],
+    trabalhar:["Dificuldade de foco e conclusão de tarefas","Tendência a superestimar capacidades","Pode evitar conversas difíceis","Falta de atenção a detalhes","Decisões baseadas em emoção","Dificuldade com rotinas e processos"],
+    medos:["Rejeição social ou desaprovação","Ser ignorado ou invisível","Perder a popularidade","Conflitos e ambientes tensos","Trabalhar em isolamento","Ser visto como superficial"],
+    tendencias:["Faz networking com facilidade","Conta histórias e usa humor","Resolve conflitos com leveza","Busca entusiasmar a todos","Começa muitos projetos ao mesmo tempo","Prefere brainstorm à execução solo"],
+    comunicacao:"Expressiva, entusiasta e rica em histórias e exemplos. Prefere conversas pessoais e ambientes descontraídos. Responde muito bem a elogios e reconhecimento. Para se comunicar com ela: seja caloroso, mostre entusiasmo e envolva-a emocionalmente antes de chegar ao ponto.",
+    mentoria:"Dê reconhecimento genuíno e use o entusiasmo dela como alavanca. Trabalhe disciplina de execução e foco. Ajude-a a desenvolver escuta ativa e consistência. Conecte metas a impacto social e visibilidade.",
+  },
+  S:{
+    name:"Estabilidade", color:"#1A5CA8", bg:"#EEF4FC",
+    combo_desc:"Perfil primário com alta orientação a pessoas e estabilidade.",
+    natural:"Colaborador confiável, paciente e genuinamente empático. Em seu estado mais autêntico, cria ambientes seguros, ouve com atenção e pensa no bem-estar coletivo antes do próprio.",
+    adaptado:"Em situações de pressão ou mudança, pode se adaptar e agir mais rapidamente, mas carrega internamente o custo emocional disso e precisa de tempo para se reequilibrar.",
+    caracteristicas:["Paciente, leal e consistente","Foco no bem-estar do grupo","Excelente ouvinte e empático","Prefere harmonia a conflito","Resistente a mudanças bruscas","Comprometido e confiável"],
+    fortes:["Criação de vínculos profundos","Confiabilidade e follow-through","Mediação e resolução de conflitos","Lealdade e comprometimento","Consistência e estabilidade","Capacidade de ouvir e acolher"],
+    trabalhar:["Dificuldade em dizer não","Evita conflitos necessários","Demora para tomar decisões","Resistência a mudanças","Coloca necessidades alheias à frente das próprias","Pode acumular ressentimento em silêncio"],
+    medos:["Perder a aprovação das pessoas","Ambientes de conflito e instabilidade","Mudanças bruscas e imprevistos","Ser visto como egoísta","Decepcionar pessoas que confia","Rejeição ou abandono"],
+    tendencias:["Cria rotinas e as segue fielmente","Prefere trabalhar em equipe","Evita conflitos mesmo quando necessário","Oferece ajuda espontaneamente","Mantém relacionamentos por longo tempo","Processa mudanças de forma gradual"],
+    comunicacao:"Calma, cuidadosa e cheia de consideração pelo outro. Prefere conversas presenciais e individuais. Não gosta de ser pressionada ou surpreendida. Para se comunicar com ela: seja gentil, dê tempo para processar, explique o contexto e mostre que as mudanças serão graduais.",
+    mentoria:"Trabalhe a assertividade como ferramenta de cuidado, não de agressão. Ajude-a a enxergar que dizer não também é respeito. Incentive-a a expressar opiniões antes que alguém pergunte. Foque em construir autoconfiança.",
+  },
+  C:{
+    name:"Conformidade", color:"#8A5A00", bg:"#FBF4E6",
+    combo_desc:"Perfil primário com alta orientação a qualidade e análise.",
+    natural:"Analítico rigoroso que busca excelência em tudo que faz. Em seu estado mais autêntico, é metódico, criterioso e comprometido com a precisão e a qualidade.",
+    adaptado:"Em ambientes que exigem agilidade e improviso, pode acelerar o ritmo e abrir mão de alguns detalhes, mas isso gera desconforto interno e sensação de entrega incompleta.",
+    caracteristicas:["Analítico e sistemático","Altamente detalhista e preciso","Segue regras e processos com rigor","Pensa antes de agir","Busca a resposta certa antes de decidir","Prefere trabalho solo ao coletivo"],
+    fortes:["Análise profunda e crítica","Atenção excepcional aos detalhes","Identificação de riscos e erros","Qualidade e precisão nas entregas","Pensamento lógico e estruturado","Confiabilidade técnica"],
+    trabalhar:["Paralisia por excesso de análise","Perfeccionismo que atrasa entregas","Dificuldade em lidar com ambiguidade","Pode parecer frio ou distante","Critica mais do que elogia","Dificuldade em tomar decisões com dados incompletos"],
+    medos:["Cometer erros ou ser criticado","Ser visto como incompetente","Trabalhar sem processos claros","Ser surpreendido sem preparo","Ambientes caóticos e imprevisíveis","Expor vulnerabilidades emocionais"],
+    tendencias:["Pesquisa exaustivamente antes de decidir","Cria listas, checklists e sistemas","Questiona premissas e dados","Prefere comunicação escrita e formal","Evita exposição desnecessária","Mantém alto padrão mesmo sob pressão"],
+    comunicacao:"Formal, precisa e baseada em fatos e dados. Prefere e-mails e documentos a reuniões longas. Não gosta de generalizações ou afirmações sem embasamento. Para se comunicar com ela: apresente dados, seja organizado, dê tempo para análise e evite pressionar por respostas rápidas.",
+    mentoria:"Trabalhe a tolerância à ambiguidade e o conceito de 'bom o suficiente'. Ajude-a a comunicar seu raciocínio de forma mais acessível. Incentive-a a dar feedbacks positivos além dos críticos. Use dados para mostrar o custo da paralisia por análise.",
+  },
+};
+
+const COMBOS={
+  DI:"Líder Inspirador",DC:"Estrategista Preciso",DS:"Líder Protetor",
+  ID:"Empreendedor Visionário",IS:"Conector Empático",IC:"Comunicador Técnico",
+  SD:"Executor Comprometido",SI:"Facilitador Engajado",SC:"Especialista Confiável",
+  CD:"Analista Decisivo",CI:"Perfeccionista Comunicativo",CS:"Guardião da Qualidade"
+};
+
+// ── STATE ─────────────────────────────────────
+let currentQ=0, answers={D:0,I:0,S:0,C:0}, selectedOpt=null;
+let shuffledQs=[], participantName='', participantEmail='';
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function topTwo(sc){return Object.entries(sc).sort((a,b)=>b[1]-a[1]).slice(0,2).map(e=>e[0])}
+
+// ── NAV ───────────────────────────────────────
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function updateNav(user){
+  currentAdmin=user;
+  const ab=document.getElementById('nav-auth'), db=document.getElementById('nav-dashboard'), ul=document.getElementById('nav-user-label');
+  if(user){ab.textContent='Sair';ab.onclick=doLogout;db.style.display='';ul.textContent=(user.user_metadata?.name||user.email||'').split(' ')[0];}
+  else{ab.textContent='Admin';ab.onclick=()=>showPage('login');db.style.display='none';ul.textContent='';}
+}
+
+// ── HOME FORM ─────────────────────────────────
+function checkForm(){
+  const n=document.getElementById('reg-name').value.trim();
+  const e=document.getElementById('reg-email').value.trim();
+  document.getElementById('btn-iniciar').disabled=!(n.length>1&&e.includes('@')&&e.includes('.'));
+}
+function iniciarAvaliacao(){
+  participantName=document.getElementById('reg-name').value.trim();
+  participantEmail=document.getElementById('reg-email').value.trim();
+  shuffledQs=QUESTIONS.map(q=>({...q,options:shuffle(q.options)}));
+  currentQ=0;answers={D:0,I:0,S:0,C:0};selectedOpt=null;
+  showPage('quiz');renderQ();
+}
+function limparForm(){
+  document.getElementById('reg-name').value='';
+  document.getElementById('reg-email').value='';
+  document.getElementById('btn-iniciar').disabled=true;
+  participantName='';participantEmail='';
+}
+
+// ── QUIZ ──────────────────────────────────────
+function renderQ(){
+  const q=shuffledQs[currentQ];
+  document.getElementById('progress').style.width=Math.round(currentQ/QUESTIONS.length*100)+'%';
+  document.getElementById('quiz-counter').textContent=(currentQ+1)+' / '+QUESTIONS.length;
+  document.getElementById('btn-back').disabled=currentQ===0;
+  document.getElementById('btn-next').disabled=true;
+  selectedOpt=null;
+  const keys=['A','B','C','D'];
+  document.getElementById('quiz-body').innerHTML=`
+    <p class="q-num">Pergunta ${currentQ+1}</p>
+    <p class="q-text">${q.text}</p>
+    <div class="options">${q.options.map((o,i)=>`
+      <button class="opt" onclick="selectOpt(${i})">
+        <span class="opt-key">${keys[i]}</span>
+        <span class="opt-text">${o.text}</span>
+      </button>`).join('')}</div>`;
+}
+function selectOpt(i){selectedOpt=i;document.querySelectorAll('.opt').forEach((b,idx)=>b.classList.toggle('selected',idx===i));document.getElementById('btn-next').disabled=false;}
+function quizNext(){
+  if(selectedOpt===null)return;
+  answers[shuffledQs[currentQ].options[selectedOpt].disc]++;selectedOpt=null;
+  if(currentQ<QUESTIONS.length-1){currentQ++;renderQ();}else finishQuiz();
+}
+function quizBack(){if(currentQ>0){currentQ--;selectedOpt=null;renderQ();}}
+
+async function finishQuiz(){
+  const total=Object.values(answers).reduce((a,b)=>a+b,0)||1;
+  const scores={D:Math.round(answers.D/total*100),I:Math.round(answers.I/total*100),S:Math.round(answers.S/total*100),C:Math.round(answers.C/total*100)};
+  const top=topTwo(scores);
+  showLoading('Salvando resultado...');
+  await sbClient.from('disc_results').insert({name:participantName,email:participantEmail,score_d:scores.D,score_i:scores.I,score_s:scores.S,score_c:scores.C,primary_profile:top[0],secondary_profile:top[1]});
+  hideLoading();
+  document.getElementById('thanks-name').textContent=participantName.split(' ')[0];
+  showPage('thanks');
+}
+
+// ── AUTH ──────────────────────────────────────
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pw=document.getElementById('login-password').value;
+  const msg=document.getElementById('login-msg');
+  const btn=document.getElementById('btn-login');
+  if(!email||!pw){showMsg(msg,'Preencha e-mail e senha.','error');return;}
+  btn.disabled=true;btn.textContent='Entrando...';
+  const {data,error}=await sbClient.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Entrar';
+  if(error){showMsg(msg,traduzirErro(error.message),'error');return;}
+  updateNav(data.user);showPage('dashboard');loadDashboard();
+}
+async function doLogout(){await sbClient.auth.signOut();updateNav(null);showPage('home');toast('Sessão encerrada');}
+function traduzirErro(m){if(m.includes('Invalid login'))return 'E-mail ou senha incorretos.';if(m.includes('Email not confirmed'))return 'Confirme seu e-mail antes de entrar.';return m;}
+function showMsg(el,text,type){el.textContent=text;el.className='auth-msg '+type;}
+
+// ── DASHBOARD ─────────────────────────────────
+async function loadDashboard(){
+  showLoading('Carregando resultados...');
+  const {data,error}=await sbClient.from('disc_results').select('*').order('created_at',{ascending:false});
+  hideLoading();
+  if(error){toast('Erro: '+error.message,'error');return;}
+  const members=data||[];
+  document.getElementById('dash-sub').textContent=members.length+' avaliação'+(members.length===1?'':'ões')+' realizadas';
+  const counts={D:0,I:0,S:0,C:0};
+  members.forEach(m=>counts[m.primary_profile]=(counts[m.primary_profile]||0)+1);
+  ['d','i','s','c'].forEach(k=>document.getElementById('stat-'+k).textContent=counts[k.toUpperCase()]);
+  const colors={D:'#C0472A',I:'#1A7A57',S:'#1A5CA8',C:'#8A5A00'};
+  const total=members.length||1;
+  document.getElementById('dist-bars').innerHTML=['D','I','S','C'].map(k=>`
+    <div class="dist-col">
+      <div class="dist-bar" style="height:${Math.max(4,Math.round(counts[k]/total*90))}px;background:${colors[k]}"></div>
+      <span class="dist-lbl" style="color:${colors[k]}">${k}</span>
+      <span class="dist-n">${counts[k]}</span>
+    </div>`).join('');
+  const bgs={D:'#FDF1EE',I:'#EEF8F4',S:'#EEF4FC',C:'#FBF4E6'};
+  const sec=document.getElementById('members-section');
+  if(!members.length){sec.innerHTML=`<div class="dash-empty"><p>Nenhuma avaliação realizada ainda.</p></div>`;return;}
+  sec.innerHTML=`
+    <div class="members-table">
+      <div class="table-head"><span>Participante</span><span>E-mail</span><span>Perfil</span><span>Data</span><span>Ações</span></div>
+      ${members.map(m=>`
+        <div class="table-row">
+          <div class="member-name">${m.name}</div>
+          <div class="member-email">${m.email||'—'}</div>
+          <div><span class="profile-chip" style="background:${bgs[m.primary_profile]};color:${colors[m.primary_profile]}">${m.primary_profile}${m.secondary_profile}</span></div>
+          <div class="member-date">${new Date(m.created_at).toLocaleDateString('pt-BR')}</div>
+          <div class="member-actions">
+            <button class="btn-sm" onclick="verResultado('${m.id}')">Ver</button>
+            <button class="btn-sm danger" onclick="deletar('${m.id}')">✕</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function deletar(id){
+  if(!confirm('Remover este resultado?'))return;
+  showLoading('Removendo...');
+  await sbClient.from('disc_results').delete().eq('id',id);
+  hideLoading();toast('Resultado removido');loadDashboard();
+}
+
+// ── RESULTADO COMPLETO ────────────────────────
+async function verResultado(id){
+  showLoading('Carregando...');
+  const {data,error}=await sbClient.from('disc_results').select('*').eq('id',id).single();
+  hideLoading();
+  if(error){toast('Erro: '+error.message,'error');return;}
+  const sc={D:data.score_d,I:data.score_i,S:data.score_s,C:data.score_c};
+  const top=topTwo(sc);
+  const p=PROFILES[top[0]], s=PROFILES[top[1]];
+  const ck=top[0]+top[1];
+  const comboName=COMBOS[ck]||COMBOS[top[1]+top[0]]||p.name;
+  const barColors={D:'#C0472A',I:'#1A7A57',S:'#1A5CA8',C:'#8A5A00'};
+  const date=new Date(data.created_at).toLocaleDateString('pt-BR');
+
+  const li=items=>items.map(x=>`<li>${x}</li>`).join('');
+
+  document.getElementById('result-content').innerHTML=`
+    <!-- TOP BAR -->
+    <div class="result-topbar no-print">
+      <button class="btn-action" onclick="showPage('dashboard')">← Voltar</button>
+      <div class="result-actions-top">
+        <button class="btn-action primary" onclick="window.print()">⬇ Baixar PDF</button>
+      </div>
+    </div>
+
+    <!-- CABEÇALHO -->
+    <div class="r-section">
+      <div class="profile-hero" style="background:${p.bg}">
+        <p style="font-size:12px;color:${p.color};font-weight:600;margin-bottom:.5rem">${date} · Avaliação DISC</p>
+        <span class="profile-combo-tag" style="color:${p.color}">${top[0]}${top[1]} · ${comboName}</span>
+        <h2 style="font-family:'DM Serif Display',serif;font-size:2.2rem;letter-spacing:-.03em;color:${p.color};margin-bottom:.35rem">${data.name}</h2>
+        <p style="font-size:14px;color:${p.color};opacity:.8">${data.email||''}</p>
+      </div>
+    </div>
+
+    <!-- GRÁFICO DE PERFIL -->
+    <div class="r-section">
+      <div class="r-section-title">Distribuição do Perfil DISC</div>
+      <div class="bars-card">
+        ${['D','I','S','C'].map(k=>`
+          <div class="bar-row">
+            <span class="bar-letter" style="color:${barColors[k]}">${k}</span>
+            <span class="bar-name">${PROFILES[k].name}</span>
+            <div class="bar-track"><div class="bar-fill" id="bf-${k}" style="width:0%;background:${barColors[k]}"></div></div>
+            <span class="bar-pct" style="color:${barColors[k]}">${sc[k]}%</span>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- PERFIL NATURAL E ADAPTADO -->
+    <div class="r-section">
+      <div class="r-section-title">Perfil Natural vs. Perfil Adaptado</div>
+      <div class="perfis-naturais">
+        <div class="perfil-box" style="border-top:3px solid ${p.color}">
+          <h4>Perfil Natural (${top[0]})</h4>
+          <strong>${p.name}</strong>
+          <p>${p.natural}</p>
+        </div>
+        <div class="perfil-box" style="border-top:3px solid ${s.color}">
+          <h4>Perfil Adaptado (${top[1]})</h4>
+          <strong>${s.name}</strong>
+          <p>${p.adaptado}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARACTERÍSTICAS -->
+    <div class="r-section">
+      <div class="r-section-title">Características do Perfil</div>
+      <div class="desc-box" style="border-color:${p.color};background:${p.bg}">${p.combo_desc} ${p.caracteristicas.join(' · ')}</div>
+      <div class="cards-3">
+        <div class="info-card"><h4>✦ Pontos Fortes</h4><ul>${li(p.fortes)}</ul></div>
+        <div class="info-card"><h4>◎ Pontos a Trabalhar</h4><ul>${li(p.trabalhar)}</ul></div>
+        <div class="info-card"><h4>⚠ Possíveis Medos</h4><ul>${li(p.medos)}</ul></div>
+      </div>
+    </div>
+
+    <!-- TENDÊNCIAS E COMUNICAÇÃO -->
+    <div class="r-section">
+      <div class="r-section-title">Tendências de Comportamento</div>
+      <div class="cards-2">
+        <div class="info-card"><h4>↗ Tendências Naturais</h4><ul>${li(p.tendencias)}</ul></div>
+        <div class="info-card" style="border-left:3px solid ${p.color}">
+          <h4>💬 Como Esta Pessoa Se Comunica</h4>
+          <p style="font-size:13px;color:var(--ink2);line-height:1.7">${p.comunicacao}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORIENTAÇÕES PARA MENTORIA -->
+    <div class="r-section">
+      <div class="r-section-title">Orientações para a Mentoria</div>
+      <div class="desc-box" style="border-color:${p.color};background:${p.bg};font-size:14px">${p.mentoria}</div>
+    </div>
+
+    <!-- RODAPÉ PDF -->
+    <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);font-size:11px;color:var(--ink3);display:flex;justify-content:space-between">
+      <span>Avaliação DISC · Mentoria Comportamental</span>
+      <span>Documento confidencial · ${date}</span>
+    </div>`;
+
+  showPage('result');
+  setTimeout(()=>['D','I','S','C'].forEach(k=>{const el=document.getElementById('bf-'+k);if(el)el.style.width=sc[k]+'%';}),150);
+}
+
+// ── UTILS ─────────────────────────────────────
+function showLoading(t=''){document.getElementById('loading-text').textContent=t;document.getElementById('loading').classList.add('show')}
+function hideLoading(){document.getElementById('loading').classList.remove('show')}
+function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(type?' '+type:'');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}
+
+// ── INIT ──────────────────────────────────────
+(async function(){
+  showLoading('Carregando...');
+  const {data:{session}}=await sbClient.auth.getSession();
+  hideLoading();
+  if(session?.user)updateNav(session.user);
+  sbClient.auth.onAuthStateChange((_,sess)=>updateNav(sess?.user||null));
+})();
+</script>
+</body>
+</html>
